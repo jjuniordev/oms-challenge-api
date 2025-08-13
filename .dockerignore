@@ -1,0 +1,14 @@
+
+.git
+.gitignore
+.dockerignore
+
+**/[Bb]in
+**/[Oo]bj
+
+README.md
+docker-compose.yml
+docker-compose.*.yml
+
+.vs/
+.idea/

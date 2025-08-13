@@ -1,0 +1,30 @@
+version: '3.8'
+services:
+  api:
+    container_name: oms_api
+    build:
+      context: .
+      dockerfile: src/Api/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=oms_database;Username=meu_usuario;Password=minha_senha_forte
+      - ASPNETCORE_URLS=http://+:8080
+    depends_on:
+      - postgres_db
+
+  postgres_db:
+    image: postgres
+    container_name: oms_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: meu_usuario
+      POSTGRES_PASSWORD: minha_senha_forte
+      POSTGRES_DB: oms_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
