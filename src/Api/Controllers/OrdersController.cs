@@ -1,7 +1,9 @@
+using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OrderManagementSystem.Api.Data;
 using OrderManagementSystem.Core;
+using System.Text.Json;
 
 namespace OrderManagementSystem.Api.Controllers;
 
@@ -10,10 +12,14 @@ namespace OrderManagementSystem.Api.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly ServiceBusClient _serviceBusClient;
+    private readonly IConfiguration _configuration;
 
-    public OrdersController(AppDbContext context)
+    public OrdersController(AppDbContext context, ServiceBusClient serviceBusClient, IConfiguration configuration)
     {
         _context = context;
+        _serviceBusClient = serviceBusClient;
+        _configuration = configuration;
     }
 
     [HttpGet]
@@ -49,8 +55,27 @@ public class OrdersController : ControllerBase
             CreationDate = DateTime.UtcNow
         };
 
-        _context.Orders.Add(order);
+        await _context.Orders.AddAsync(order);
         await _context.SaveChangesAsync();
+
+        try
+        {
+            string queueName = _configuration["ServiceBus:QueueName"];
+
+            ServiceBusSender sender = _serviceBusClient.CreateSender(queueName);
+
+            string messageBody = JsonSerializer.Serialize(order);
+            
+            ServiceBusMessage message = new ServiceBusMessage(messageBody);
+
+            await sender.SendMessageAsync(message);
+
+            await sender.DisposeAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao enviar mensagem para o Service Bus: {ex.Message}");
+        }
 
         return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
     }

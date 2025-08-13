@@ -1,3 +1,4 @@
+using Azure.Messaging.ServiceBus;
 using Microsoft.EntityFrameworkCore;
 using OrderManagementSystem.Api.Data;
 
@@ -7,6 +8,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString, b => b.MigrationsAssembly("OrderManagementSystem.Api")));
+
+var serviceBusConnectionString = builder.Configuration["ServiceBus:ConnectionString"];
+builder.Services.AddSingleton(new ServiceBusClient(serviceBusConnectionString));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
