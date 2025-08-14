@@ -1,11 +1,21 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate } from 'react-router-dom';
 
-const OrderRow = ({ order }) => {
+const OrderRow = ({ order, onDelete }) => {
   const navigate = useNavigate();
 
   const handleRowClick = () => {
     navigate(`/order/${order.id}`);
+  };
+
+  const handleEditClick = (e) => {
+    e.stopPropagation();
+    navigate(`/order/${order.id}/edit`);
+  };
+  
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    onDelete(order.id);
   };
 
   return (
@@ -14,12 +24,15 @@ const OrderRow = ({ order }) => {
       <td className="py-4 px-6">{order.product}</td>
       <td className="py-4 px-6">R$ {order.price.toFixed(2)}</td>
       <td className="py-4 px-6">{order.status}</td>
+      <td className="py-4 px-6 text-right">
+        <button onClick={handleEditClick} className="font-medium text-cyan-500 hover:underline mr-4">Editar</button>
+        <button onClick={handleDeleteClick} className="font-medium text-red-500 hover:underline">Excluir</button>
+      </td>
     </tr>
   );
 };
 
-
-function OrderList({ orders, loading, error }) {
+function OrderList({ orders, loading, error, onDelete }) {
   if (loading) return <p className="text-center text-xl">Carregando pedidos...</p>;
   if (error) return <p className="text-center text-xl text-red-500">{error}</p>;
   if (orders.length === 0) return <p className="text-center text-gray-400">Nenhum pedido encontrado...</p>;
@@ -33,11 +46,12 @@ function OrderList({ orders, loading, error }) {
             <th scope="col" className="py-3 px-6">Produto</th>
             <th scope="col" className="py-3 px-6">Valor</th>
             <th scope="col" className="py-3 px-6">Status</th>
+            <th scope="col" className="py-3 px-6"><span className="sr-only">Ações</span></th>
           </tr>
         </thead>
         <tbody>
           {orders.map((order) => (
-            <OrderRow key={order.id} order={order} />
+            <OrderRow key={order.id} order={order} onDelete={onDelete} />
           ))}
         </tbody>
       </table>

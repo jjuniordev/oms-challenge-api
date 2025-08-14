@@ -1,9 +1,7 @@
-using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OrderManagementSystem.Data;
 using OrderManagementSystem.Core;
-using System.Text.Json;
 
 namespace OrderManagementSystem.Api.Controllers;
 
@@ -12,14 +10,10 @@ namespace OrderManagementSystem.Api.Controllers;
 public class OrdersController : ControllerBase
 {
     private readonly AppDbContext _context;
-    private readonly ServiceBusClient _serviceBusClient;
-    private readonly IConfiguration _configuration;
 
-    public OrdersController(AppDbContext context, ServiceBusClient serviceBusClient, IConfiguration configuration)
+    public OrdersController(AppDbContext context)
     {
         _context = context;
-        _serviceBusClient = serviceBusClient;
-        _configuration = configuration;
     }
 
     [HttpGet]
@@ -33,12 +27,10 @@ public class OrdersController : ControllerBase
     public async Task<IActionResult> GetOrderById(Guid id)
     {
         var order = await _context.Orders.FindAsync(id);
-
         if (order == null)
         {
             return NotFound();
         }
-
         return Ok(order);
     }
 
@@ -55,33 +47,55 @@ public class OrdersController : ControllerBase
             CreationDate = DateTime.UtcNow
         };
 
-        await _context.Orders.AddAsync(order);
+        _context.Orders.Add(order);
+        await _context.SaveChangesAsync();
+        
+        return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateOrder(Guid id, [FromBody] OrderUpdateModel model)
+    {
+        var orderFromDb = await _context.Orders.FindAsync(id);
+        if (orderFromDb == null)
+        {
+            return NotFound();
+        }
+
+        orderFromDb.CustomerName = model.CustomerName;
+        orderFromDb.Product = model.Product;
+        orderFromDb.Price = model.Price;
+
+        _context.Orders.Update(orderFromDb);
         await _context.SaveChangesAsync();
 
-        try
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteOrder(Guid id)
+    {
+        var orderFromDb = await _context.Orders.FindAsync(id);
+        if (orderFromDb == null)
         {
-            string queueName = _configuration["ServiceBus:QueueName"];
-
-            ServiceBusSender sender = _serviceBusClient.CreateSender(queueName);
-
-            string messageBody = JsonSerializer.Serialize(order);
-            
-            ServiceBusMessage message = new ServiceBusMessage(messageBody);
-
-            await sender.SendMessageAsync(message);
-
-            await sender.DisposeAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Erro ao enviar mensagem para o Service Bus: {ex.Message}");
+            return NotFound();
         }
 
-        return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
+        _context.Orders.Remove(orderFromDb);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
     }
 }
 
 public class OrderCreateModel
+{
+    public string CustomerName { get; set; } = string.Empty;
+    public string Product { get; set; } = string.Empty;
+    public decimal Price { get; set; } = 0;
+}
+
+public class OrderUpdateModel
 {
     public string CustomerName { get; set; } = string.Empty;
     public string Product { get; set; } = string.Empty;

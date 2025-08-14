@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getOrders } from '../services/api';
+import { getOrders, deleteOrder } from '../services/api';
 import OrderList from '../components/OrderList';
 import CreateOrderForm from '../components/CreateOrderForm';
 
@@ -25,6 +25,17 @@ function HomePage() {
     fetchOrders();
   }, [fetchOrders]);
 
+  const handleDeleteOrder = async (id) => {
+    if (window.confirm('Tem certeza que deseja excluir este pedido?')) {
+      try {
+        await deleteOrder(id);
+        setOrders(prevOrders => prevOrders.filter(order => order.id !== id));
+      } catch (err) {
+        alert('Falha ao excluir o pedido.');
+      }
+    }
+  };
+      
   return (
     <>
       <header className="mb-8">
@@ -36,7 +47,7 @@ function HomePage() {
         <CreateOrderForm onOrderCreated={fetchOrders} />
         <div className="mt-8">
           <h2 className="text-2xl font-bold mb-4 text-cyan-400">Pedidos Recentes</h2>
-          <OrderList orders={orders} loading={loading} error={error} />
+          <OrderList orders={orders} loading={loading} error={error} onDelete={handleDeleteOrder} />
         </div>
       </main>
     </>
