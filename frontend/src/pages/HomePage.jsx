@@ -55,11 +55,6 @@ function HomePage() {
       
   return (
     <>
-      <header className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-neutral-black px-4">
-          Sistema de Gestão de Pedidos
-        </h1>
-      </header>
       <main>
         <CreateOrderForm onOrderCreated={fetchOrders} />
         <div className="mt-6 sm:mt-8">

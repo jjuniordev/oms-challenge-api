@@ -43,9 +43,24 @@ function OrderDetailPage() {
           </div>
         )}
       </div>
-      <div className="mt-6 text-center">
-        <Link to="/" className="text-primary-light hover:text-primary-main font-medium transition-colors text-sm sm:text-base">
-          &larr; Voltar para a lista de pedidos
+      <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+        <Link 
+          to="/" 
+          className="inline-flex items-center justify-center px-4 py-2 text-primary-light hover:text-primary-main font-medium transition-colors text-sm sm:text-base bg-gray-50 hover:bg-gray-100 rounded-lg"
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Voltar para Lista
+        </Link>
+        <Link 
+          to={`/order/${order?.id}/edit`}
+          className="inline-flex items-center justify-center px-4 py-2 text-neutral-white bg-primary-main hover:bg-primary-main/90 font-medium transition-colors text-sm sm:text-base rounded-lg"
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Editar Pedido
         </Link>
       </div>
     </div>
