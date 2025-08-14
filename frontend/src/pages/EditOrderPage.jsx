@@ -77,12 +77,12 @@ function EditOrderPage() {
     }
   };
 
-  if (loading) return <p className="text-center text-xl text-neutral-black">Carregando formulário de edição...</p>;
+  if (loading) return <p className="text-center text-lg sm:text-xl text-neutral-black px-4">Carregando formulário de edição...</p>;
   
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="bg-neutral-white p-6 rounded-lg shadow-md border border-gray-200">
-        <h1 className="text-3xl font-bold text-neutral-black mb-4">Editar Pedido</h1>
+    <div className="max-w-2xl mx-auto px-4">
+      <div className="bg-neutral-white p-4 sm:p-6 rounded-lg shadow-md border border-gray-200">
+        <h1 className="text-2xl sm:text-3xl font-bold text-neutral-black mb-4">Editar Pedido</h1>
         <form onSubmit={handleSubmit}>
             <div className="space-y-4 mb-4">
               <div>
@@ -99,13 +99,13 @@ function EditOrderPage() {
               </div>
             </div>
             {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-            <button type="submit" disabled={isSubmitting} className="w-full text-neutral-white bg-primary-main hover:bg-primary-main/90 focus:ring-4 focus:outline-none focus:ring-primary-light/30 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-gray-400 transition-colors">
+            <button type="submit" disabled={isSubmitting} className="w-full text-neutral-white bg-primary-main hover:bg-primary-main/90 focus:ring-4 focus:outline-none focus:ring-primary-light/30 font-medium rounded-lg text-sm sm:text-base px-4 sm:px-5 py-2.5 text-center disabled:bg-gray-400 transition-colors">
               {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
             </button>
           </form>
       </div>
       <div className="mt-6 text-center">
-        <Link to="/" className="text-primary-light hover:text-primary-main font-medium transition-colors">
+        <Link to="/" className="text-primary-light hover:text-primary-main font-medium transition-colors text-sm sm:text-base">
           &larr; Cancelar e voltar
         </Link>
       </div>

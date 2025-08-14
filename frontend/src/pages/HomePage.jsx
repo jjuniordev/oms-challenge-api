@@ -55,15 +55,15 @@ function HomePage() {
       
   return (
     <>
-      <header className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-center text-neutral-black">
+      <header className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center text-neutral-black px-4">
           Sistema de Gestão de Pedidos
         </h1>
       </header>
       <main>
         <CreateOrderForm onOrderCreated={fetchOrders} />
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4 text-neutral-black">Pedidos Recentes</h2>
+        <div className="mt-6 sm:mt-8">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 text-neutral-black px-4 sm:px-0">Pedidos Recentes</h2>
           <OrderList orders={orders} loading={loading} error={error} onDelete={handleDeleteOrder} />
         </div>
       </main>

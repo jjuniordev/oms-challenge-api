@@ -62,10 +62,10 @@ function CreateOrderForm({ onOrderCreated }) {
   };
 
   return (
-    <div className="bg-neutral-white p-6 rounded-lg shadow-md mb-8 border border-gray-200">
-      <h2 className="text-2xl font-bold mb-4 text-neutral-black">Criar Novo Pedido</h2>
+    <div className="bg-neutral-white p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8 border border-gray-200">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-neutral-black">Criar Novo Pedido</h2>
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           <div>
             <label htmlFor="customerName" className="block mb-2 text-sm font-medium text-neutral-black">Nome do Cliente</label>
             <input type="text" id="customerName" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="bg-neutral-white border border-gray-300 text-neutral-black text-sm rounded-lg focus:ring-primary-light focus:border-primary-light block w-full p-2.5" />
@@ -80,7 +80,7 @@ function CreateOrderForm({ onOrderCreated }) {
           </div>
         </div>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-        <button type="submit" disabled={isSubmitting} className="w-full text-neutral-white bg-primary-main hover:bg-primary-main/90 focus:ring-4 focus:outline-none focus:ring-primary-light/30 font-medium rounded-lg text-sm px-5 py-2.5 text-center disabled:bg-gray-400 transition-colors">
+        <button type="submit" disabled={isSubmitting} className="w-full text-neutral-white bg-primary-main hover:bg-primary-main/90 focus:ring-4 focus:outline-none focus:ring-primary-light/30 font-medium rounded-lg text-sm sm:text-base px-4 sm:px-5 py-2.5 text-center disabled:bg-gray-400 transition-colors">
           {isSubmitting ? 'Criando...' : 'Criar Pedido'}
         </button>
       </form>

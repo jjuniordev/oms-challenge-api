@@ -17,15 +17,15 @@ function AlertModal({ isOpen, onClose, title, message, type = "info" }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         <div className={`p-4 rounded-lg border mb-4 ${getTypeStyles()}`}>
           <h3 className="text-lg font-bold mb-2">{title}</h3>
-          <p>{message}</p>
+          <p className="text-sm sm:text-base">{message}</p>
         </div>
         <div className="flex justify-end">
           <button
             onClick={onClose}
-            className="px-6 py-2 text-neutral-white bg-primary-main hover:bg-primary-main/90 rounded-lg font-medium transition-colors"
+            className="px-4 sm:px-6 py-2 text-neutral-white bg-primary-main hover:bg-primary-main/90 rounded-lg font-medium transition-colors text-sm sm:text-base"
           >
             OK
           </button>
