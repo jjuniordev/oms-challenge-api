@@ -12,10 +12,10 @@ RUN dotnet restore "OrderManagementSystem.sln"
 
 COPY src/ ./src/
 
-WORKDIR "/app/src/Api"
+WORKDIR "/app/src/Worker"
 RUN dotnet publish -c Release -o /app/out
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/runtime:8.0
 WORKDIR /app
 COPY --from=build-env /app/out .
-ENTRYPOINT ["dotnet", "OrderManagementSystem.Api.dll"]
+ENTRYPOINT ["dotnet", "OrderManagementSystem.Worker.dll"]

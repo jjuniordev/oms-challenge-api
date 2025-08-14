@@ -1,13 +1,13 @@
 using Azure.Messaging.ServiceBus;
 using Microsoft.EntityFrameworkCore;
-using OrderManagementSystem.Api.Data;
+using OrderManagementSystem.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString, b => b.MigrationsAssembly("OrderManagementSystem.Api")));
+    options.UseNpgsql(connectionString, b => b.MigrationsAssembly("OrderManagementSystem.Data")));
 
 var serviceBusConnectionString = builder.Configuration["ServiceBus:ConnectionString"];
 builder.Services.AddSingleton(new ServiceBusClient(serviceBusConnectionString));

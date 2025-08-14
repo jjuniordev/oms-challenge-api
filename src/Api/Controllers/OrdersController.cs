@@ -1,7 +1,7 @@
 using Azure.Messaging.ServiceBus;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OrderManagementSystem.Api.Data;
+using OrderManagementSystem.Data;
 using OrderManagementSystem.Core;
 using System.Text.Json;
 

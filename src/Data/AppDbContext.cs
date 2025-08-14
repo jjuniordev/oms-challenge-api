@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using OrderManagementSystem.Core;
 
-namespace OrderManagementSystem.Api.Data;
+namespace OrderManagementSystem.Data; 
 
 public class AppDbContext : DbContext
 {
