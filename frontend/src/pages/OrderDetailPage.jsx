@@ -25,26 +25,26 @@ function OrderDetailPage() {
     fetchOrder();
   }, [orderId]);
 
-  if (loading) return <p className="text-center text-xl">Carregando detalhes do pedido...</p>;
+  if (loading) return <p className="text-center text-xl text-neutral-black">Carregando detalhes do pedido...</p>;
   if (error) return <p className="text-center text-xl text-red-500">{error}</p>;
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-cyan-400 mb-4">Detalhes do Pedido</h1>
+      <div className="bg-neutral-white p-6 rounded-lg shadow-md border border-gray-200">
+        <h1 className="text-3xl font-bold text-neutral-black mb-4">Detalhes do Pedido</h1>
         {order && (
           <div className="space-y-3 text-lg">
-            <p><span className="font-bold text-gray-400">ID:</span> {order.id}</p>
-            <p><span className="font-bold text-gray-400">Cliente:</span> {order.customerName}</p>
-            <p><span className="font-bold text-gray-400">Produto:</span> {order.product}</p>
-            <p><span className="font-bold text-gray-400">Valor:</span> R$ {order.price.toFixed(2)}</p>
-            <p><span className="font-bold text-gray-400">Status:</span> {order.status}</p>
-            <p><span className="font-bold text-gray-400">Data de Criação:</span> {new Date(order.creationDate).toLocaleString()}</p>
+            <p><span className="font-bold text-gray-600">ID:</span> <span className="text-neutral-black">{order.id}</span></p>
+            <p><span className="font-bold text-gray-600">Cliente:</span> <span className="text-neutral-black">{order.customerName}</span></p>
+            <p><span className="font-bold text-gray-600">Produto:</span> <span className="text-neutral-black">{order.product}</span></p>
+            <p><span className="font-bold text-gray-600">Valor:</span> <span className="text-neutral-black">R$ {order.price.toFixed(2)}</span></p>
+            <p><span className="font-bold text-gray-600">Status:</span> <span className="text-neutral-black">{order.status}</span></p>
+            <p><span className="font-bold text-gray-600">Data de Criação:</span> <span className="text-neutral-black">{new Date(order.creationDate).toLocaleString()}</span></p>
           </div>
         )}
       </div>
       <div className="mt-6 text-center">
-        <Link to="/" className="text-cyan-400 hover:text-cyan-300 font-medium">
+        <Link to="/" className="text-primary-light hover:text-primary-main font-medium transition-colors">
           &larr; Voltar para a lista de pedidos
         </Link>
       </div>

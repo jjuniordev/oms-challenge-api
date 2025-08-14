@@ -2,11 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getOrders, deleteOrder } from '../services/api';
 import OrderList from '../components/OrderList';
 import CreateOrderForm from '../components/CreateOrderForm';
+import ConfirmModal from '../components/ConfirmModal';
+import AlertModal from '../components/AlertModal';
 
 function HomePage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, orderId: null });
+  const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -26,30 +30,61 @@ function HomePage() {
   }, [fetchOrders]);
 
   const handleDeleteOrder = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este pedido?')) {
-      try {
-        await deleteOrder(id);
-        setOrders(prevOrders => prevOrders.filter(order => order.id !== id));
-      } catch (err) {
-        alert('Falha ao excluir o pedido.');
-      }
+    setConfirmModal({ isOpen: true, orderId: id });
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await deleteOrder(confirmModal.orderId);
+      setOrders(prevOrders => prevOrders.filter(order => order.id !== confirmModal.orderId));
+      setAlertModal({
+        isOpen: true,
+        title: 'Sucesso',
+        message: 'Pedido excluído com sucesso!',
+        type: 'success'
+      });
+    } catch (err) {
+      setAlertModal({
+        isOpen: true,
+        title: 'Erro',
+        message: 'Falha ao excluir o pedido. Tente novamente.',
+        type: 'error'
+      });
     }
   };
       
   return (
     <>
       <header className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-center text-cyan-400">
+        <h1 className="text-3xl md:text-4xl font-bold text-center text-neutral-black">
           Sistema de Gestão de Pedidos
         </h1>
       </header>
       <main>
         <CreateOrderForm onOrderCreated={fetchOrders} />
         <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4 text-cyan-400">Pedidos Recentes</h2>
+          <h2 className="text-2xl font-bold mb-4 text-neutral-black">Pedidos Recentes</h2>
           <OrderList orders={orders} loading={loading} error={error} onDelete={handleDeleteOrder} />
         </div>
       </main>
+      
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, orderId: null })}
+        onConfirm={confirmDelete}
+        title="Confirmar Exclusão"
+        message="Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+      />
+      
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ isOpen: false, title: '', message: '', type: 'info' })}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+      />
     </>
   );
 }

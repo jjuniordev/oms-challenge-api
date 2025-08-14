@@ -6,7 +6,7 @@ import EditOrderPage from './pages/EditOrderPage';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8">
+    <div className="min-h-screen bg-neutral-light text-neutral-black p-4 md:p-8 font-sans">
       <div className="max-w-4xl mx-auto">
         <Routes>
           <Route path="/" element={<HomePage />} />
