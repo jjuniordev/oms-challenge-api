@@ -25,7 +25,7 @@ public class Worker : BackgroundService
         _logger.LogInformation("Worker iniciado e ouvindo a fila...");
 
         _processor.ProcessMessageAsync += MessageHandler;
-        // Define o que fazer se um erro acontecer
+
         _processor.ProcessErrorAsync += ErrorHandler;
 
         await _processor.StartProcessingAsync(stoppingToken);

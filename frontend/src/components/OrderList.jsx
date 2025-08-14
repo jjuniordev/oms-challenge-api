@@ -1,35 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { getOrders } from '../services/api';
+import React from 'react';
+import { useNavigate } from 'react-router-dom'; 
 
-function OrderList() {
+const OrderRow = ({ order }) => {
+  const navigate = useNavigate();
 
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const handleRowClick = () => {
+    navigate(`/order/${order.id}`);
+  };
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const data = await getOrders();
-        setOrders(data); 
-      } catch (err) {
-        setError('Falha ao carregar os pedidos.'); 
-      } finally {
-        setLoading(false); 
-      }
-    };
+  return (
+    <tr onClick={handleRowClick} className="bg-gray-800 border-b border-gray-700 hover:bg-gray-600 cursor-pointer">
+      <td className="py-4 px-6 font-medium text-white whitespace-nowrap">{order.customerName}</td>
+      <td className="py-4 px-6">{order.product}</td>
+      <td className="py-4 px-6">R$ {order.price.toFixed(2)}</td>
+      <td className="py-4 px-6">{order.status}</td>
+    </tr>
+  );
+};
 
-    fetchOrders();
-  }, []);
 
-  
-  if (loading) {
-    return <p className="text-center text-xl">Carregando pedidos...</p>;
-  }
-
-  if (error) {
-    return <p className="text-center text-xl text-red-500">{error}</p>;
-  }
+function OrderList({ orders, loading, error }) {
+  if (loading) return <p className="text-center text-xl">Carregando pedidos...</p>;
+  if (error) return <p className="text-center text-xl text-red-500">{error}</p>;
+  if (orders.length === 0) return <p className="text-center text-gray-400">Nenhum pedido encontrado...</p>;
 
   return (
     <div className="overflow-x-auto relative shadow-md sm:rounded-lg">
@@ -44,12 +37,7 @@ function OrderList() {
         </thead>
         <tbody>
           {orders.map((order) => (
-            <tr key={order.id} className="bg-gray-800 border-b border-gray-700 hover:bg-gray-600">
-              <td className="py-4 px-6 font-medium text-white whitespace-nowrap">{order.customerName}</td>
-              <td className="py-4 px-6">{order.product}</td>
-              <td className="py-4 px-6">R$ {order.price.toFixed(2)}</td>
-              <td className="py-4 px-6">{order.status}</td>
-            </tr>
+            <OrderRow key={order.id} order={order} />
           ))}
         </tbody>
       </table>
