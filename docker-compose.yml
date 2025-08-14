@@ -22,6 +22,7 @@ services:
     environment:
       - ConnectionStrings__DefaultConnection=Host=postgres_db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
       - ServiceBus__ConnectionString=${SERVICEBUS_CONNECTION_STRING}
+      - ServiceBus__QueueName=order-queue
     depends_on:
       - postgres_db
 
