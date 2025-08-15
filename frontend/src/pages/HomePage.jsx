@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getOrders, deleteOrder } from '../services/api';
 import OrderList from '../components/OrderList';
 import CreateOrderForm from '../components/CreateOrderForm';
 import ConfirmModal from '../components/ConfirmModal';
 import AlertModal from '../components/AlertModal';
+import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { toast } from 'react-toastify';
 
 function HomePage() {
   const [orders, setOrders] = useState([]);
@@ -11,6 +13,7 @@ function HomePage() {
   const [error, setError] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, orderId: null });
   const [alertModal, setAlertModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+  const connectionRef = useRef(null);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -28,6 +31,48 @@ function HomePage() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  useEffect(() => {
+    if (!connectionRef.current) {
+      const connection = new HubConnectionBuilder()
+        .withUrl("http://localhost:8080/notificationHub")
+        .configureLogging(LogLevel.Information)
+        .build();
+
+      connectionRef.current = connection;
+
+      const handleOrderStatusUpdate = (updatedOrder) => {
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === updatedOrder.id ? updatedOrder : order
+          )
+        );
+        toast.info(`O pedido de "${updatedOrder.customerName}" foi atualizado para: ${updatedOrder.status}`);
+      };
+
+      connection.on("ReceiveOrderStatusUpdate", handleOrderStatusUpdate);
+
+      async function startConnection() {
+        try {
+          await connection.start();
+          console.log("Conectado ao SignalR!");
+        } catch (err) {
+          console.error("Falha ao conectar ao SignalR: ", err);
+          setTimeout(startConnection, 5000);
+        }
+      }
+
+      startConnection();
+    }
+    
+    return () => {
+      if (connectionRef.current && connectionRef.current.state === 'Connected') {
+        connectionRef.current.stop()
+          .then(() => console.log("Conexão SignalR parada."))
+          .catch(err => console.error("Erro ao parar SignalR: ", err));
+      }
+    };
+  }, []);
 
   const handleDeleteOrder = async (id) => {
     setConfirmModal({ isOpen: true, orderId: id });
@@ -50,6 +95,8 @@ function HomePage() {
         message: 'Falha ao excluir o pedido. Tente novamente.',
         type: 'error'
       });
+    } finally {
+      setConfirmModal({ isOpen: false, orderId: null });
     }
   };
       

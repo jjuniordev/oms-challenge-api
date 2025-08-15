@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,7 @@ public class Worker : BackgroundService
     private readonly ILogger<Worker> _logger;
     private readonly ServiceBusProcessor _processor;
     private readonly IDbContextFactory<AppDbContext> _dbContextFactory;
+    private readonly HttpClient _httpClient;
 
     public Worker(ILogger<Worker> logger, ServiceBusClient serviceBusClient, IConfiguration configuration, IDbContextFactory<AppDbContext> dbContextFactory)
     {
@@ -18,6 +20,7 @@ public class Worker : BackgroundService
         _dbContextFactory = dbContextFactory;
         var queueName = configuration["ServiceBus:QueueName"];
         _processor = serviceBusClient.CreateProcessor(queueName, new ServiceBusProcessorOptions());
+        _httpClient = new HttpClient { BaseAddress = new Uri("http://api:8080") };
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -59,12 +62,14 @@ public class Worker : BackgroundService
                     orderFromDb.Status = "Processando";
                     await dbContext.SaveChangesAsync();
                     _logger.LogInformation("Pedido {OrderId} atualizado para 'Processando'", orderFromDb.Id);
+                    await NotifyStatusChange(orderFromDb);
 
                     await Task.Delay(5000);
 
                     orderFromDb.Status = "Finalizado";
                     await dbContext.SaveChangesAsync();
                     _logger.LogInformation("Pedido {OrderId} atualizado para 'Finalizado'", orderFromDb.Id);
+                    await NotifyStatusChange(orderFromDb);
                 }
             }
         }
@@ -75,6 +80,21 @@ public class Worker : BackgroundService
         finally
         {
             await args.CompleteMessageAsync(args.Message);
+        }
+    }
+
+    private async Task NotifyStatusChange(Order order)
+    {
+        try
+        {
+            var jsonContent = JsonSerializer.Serialize(order);
+            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+            await _httpClient.PostAsync("/api/notifications/status-changed", content);
+            _logger.LogInformation("Notificação de mudança de status enviada para a API para o pedido {OrderId}", order.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Falha ao enviar notificação de status para a API");
         }
     }
 
