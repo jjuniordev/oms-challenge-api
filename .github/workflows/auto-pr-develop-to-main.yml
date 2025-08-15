@@ -1,0 +1,124 @@
+name: Auto PR from Develop to Main
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Check if PR already exists
+      id: check-pr
+      run: |
+        pr_exists=$(gh pr list --base main --head develop --state open --json number --jq length)
+        echo "pr_exists=$pr_exists" >> $GITHUB_OUTPUT
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get latest commits info
+      id: commits-info
+      if: steps.check-pr.outputs.pr_exists == '0'
+      run: |
+        # Get the latest commit message and author
+        latest_commit_message=$(git log -1 --pretty=format:"%s" develop)
+        latest_commit_author=$(git log -1 --pretty=format:"%an" develop)
+        latest_commit_hash=$(git log -1 --pretty=format:"%h" develop)
+        
+        # Get commit count between main and develop
+        commit_count=$(git rev-list --count main..develop)
+        
+        # Get list of commits for PR body
+        commits_list=$(git log main..develop --pretty=format:"- %s (%h) by %an" --reverse)
+        
+        echo "latest_commit_message=$latest_commit_message" >> $GITHUB_OUTPUT
+        echo "latest_commit_author=$latest_commit_author" >> $GITHUB_OUTPUT
+        echo "latest_commit_hash=$latest_commit_hash" >> $GITHUB_OUTPUT
+        echo "commit_count=$commit_count" >> $GITHUB_OUTPUT
+        
+        # Save commits list to a file for multiline output
+        echo "$commits_list" > commits_list.txt
+
+    - name: Create Pull Request
+      if: steps.check-pr.outputs.pr_exists == '0'
+      run: |
+        # Read commits list
+        commits_list=$(cat commits_list.txt)
+        
+        # Create PR body
+        pr_body="## 🚀 Auto PR: Develop → Main
+        
+        **📊 Summary:**
+        - **${{ steps.commits-info.outputs.commit_count }}** new commit(s) ready for production
+        - **Latest commit:** ${{ steps.commits-info.outputs.latest_commit_message }}
+        - **Author:** ${{ steps.commits-info.outputs.latest_commit_author }}
+        - **Hash:** \`${{ steps.commits-info.outputs.latest_commit_hash }}\`
+        
+        ## 📝 Changes Included:
+        
+        $commits_list
+        
+        ## ✅ Pre-merge Checklist:
+        
+        - [ ] Code review completed
+        - [ ] Tests are passing
+        - [ ] No breaking changes
+        - [ ] Documentation updated (if needed)
+        - [ ] Ready for production deployment
+        
+        ---
+        
+        🤖 *This PR was automatically created by GitHub Actions when develop branch was updated.*
+        
+        **⚠️ Important:** Please review all changes before merging to main!"
+        
+        # Create the PR
+        gh pr create \
+          --title "🚀 Deploy: Develop → Main (${{ steps.commits-info.outputs.commit_count }} commits)" \
+          --body "$pr_body" \
+          --base main \
+          --head develop \
+          --label "auto-pr,deployment,ready-for-review" \
+          --reviewer "${{ github.actor }}"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: PR already exists
+      if: steps.check-pr.outputs.pr_exists != '0'
+      run: |
+        echo "✅ Pull Request from develop to main already exists."
+        echo "📋 Checking existing PR..."
+        gh pr list --base main --head develop --state open
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Add comment to existing PR
+      if: steps.check-pr.outputs.pr_exists != '0'
+      run: |
+        # Get the PR number
+        pr_number=$(gh pr list --base main --head develop --state open --json number --jq '.[0].number')
+        
+        # Get latest commit info
+        latest_commit_message=$(git log -1 --pretty=format:"%s" develop)
+        latest_commit_hash=$(git log -1 --pretty=format:"%h" develop)
+        latest_commit_author=$(git log -1 --pretty=format:"%an" develop)
+        
+        # Add comment to existing PR
+        gh pr comment $pr_number --body "🔄 **New commits pushed to develop:**
+        
+        **Latest commit:** $latest_commit_message  
+        **Hash:** \`$latest_commit_hash\`  
+        **Author:** $latest_commit_author  
+        **Time:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        
+        🤖 *Auto-updated by GitHub Actions*"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

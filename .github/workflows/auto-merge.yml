@@ -1,0 +1,146 @@
+name: Auto-merge Develop to Main
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ labeled ]
+
+jobs:
+  auto-merge:
+    if: contains(github.event.label.name, 'auto-merge-approved')
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Check if all checks passed
+      id: check-status
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: checks } = await github.rest.checks.listForRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: context.payload.pull_request.head.sha,
+          });
+          
+          const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: context.payload.pull_request.head.sha,
+          });
+          
+          const allChecks = [...checks.check_runs, ...statuses];
+          const failedChecks = allChecks.filter(check => 
+            check.status === 'completed' && check.conclusion !== 'success'
+          );
+          
+          const pendingChecks = allChecks.filter(check => 
+            check.status !== 'completed'
+          );
+          
+          if (failedChecks.length > 0) {
+            core.setOutput('can_merge', 'false');
+            core.setOutput('reason', 'Failed checks detected');
+            return;
+          }
+          
+          if (pendingChecks.length > 0) {
+            core.setOutput('can_merge', 'false');
+            core.setOutput('reason', 'Pending checks');
+            return;
+          }
+          
+          core.setOutput('can_merge', 'true');
+          core.setOutput('reason', 'All checks passed');
+
+    - name: Wait for checks to complete
+      if: steps.check-status.outputs.can_merge == 'false' && steps.check-status.outputs.reason == 'Pending checks'
+      run: |
+        echo "⏳ Waiting for checks to complete..."
+        sleep 60
+        
+    - name: Re-check status after waiting
+      if: steps.check-status.outputs.can_merge == 'false' && steps.check-status.outputs.reason == 'Pending checks'
+      id: recheck-status
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: checks } = await github.rest.checks.listForRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: context.payload.pull_request.head.sha,
+          });
+          
+          const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: context.payload.pull_request.head.sha,
+          });
+          
+          const allChecks = [...checks.check_runs, ...statuses];
+          const failedChecks = allChecks.filter(check => 
+            check.status === 'completed' && check.conclusion !== 'success'
+          );
+          
+          const pendingChecks = allChecks.filter(check => 
+            check.status !== 'completed'
+          );
+          
+          if (failedChecks.length > 0 || pendingChecks.length > 0) {
+            core.setOutput('final_can_merge', 'false');
+          } else {
+            core.setOutput('final_can_merge', 'true');
+          }
+
+    - name: Merge Pull Request
+      if: steps.check-status.outputs.can_merge == 'true' || steps.recheck-status.outputs.final_can_merge == 'true'
+      run: |
+        gh pr merge ${{ github.event.pull_request.number }} \
+          --merge \
+          --delete-branch \
+          --subject "🚀 Auto-deploy: Develop → Main" \
+          --body "✅ Automatically merged after all validations passed.
+          
+          **Merged commits:** ${{ github.event.pull_request.commits }}
+          **Validation status:** All checks passed
+          **Merge method:** Merge commit
+          
+          🤖 *Automated merge by GitHub Actions*"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Add merge success comment
+      if: steps.check-status.outputs.can_merge == 'true' || steps.recheck-status.outputs.final_can_merge == 'true'
+      run: |
+        gh pr comment ${{ github.event.pull_request.number }} --body "🎉 **Successfully merged to main!**
+        
+        **Deployment status:** Ready for production
+        **Next steps:** 
+        - 🚀 Production deployment will start automatically
+        - 📊 Monitor application metrics
+        - 🔍 Verify functionality in production
+        
+        🤖 *Auto-merged by GitHub Actions*"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Cannot merge - add comment
+      if: steps.check-status.outputs.can_merge == 'false' && steps.recheck-status.outputs.final_can_merge != 'true'
+      run: |
+        gh pr comment ${{ github.event.pull_request.number }} --body "❌ **Auto-merge failed**
+        
+        **Reason:** ${{ steps.check-status.outputs.reason }}
+        
+        **Required actions:**
+        - ✅ Ensure all checks pass
+        - 🔍 Review and fix any failing tests
+        - 📝 Address any security vulnerabilities
+        - 🏷️ Re-apply the \`auto-merge-approved\` label after fixes
+        
+        🤖 *Auto-merge validation by GitHub Actions*"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

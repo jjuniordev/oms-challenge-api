@@ -1,0 +1,167 @@
+name: PR Validation - Develop to Main
+
+on:
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize, reopened ]
+
+jobs:
+  validate-pr:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Restore .NET dependencies
+      run: dotnet restore
+
+    - name: Build .NET projects
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Run .NET tests
+      run: dotnet test --no-build --configuration Release --verbosity normal
+
+    - name: Install Frontend dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Build Frontend
+      working-directory: ./frontend
+      run: npm run build
+
+    - name: Run Frontend tests
+      working-directory: ./frontend
+      run: npm test -- --coverage --watchAll=false
+
+    - name: Check for breaking changes
+      id: breaking-changes
+      run: |
+        # Check if there are any breaking changes in API
+        breaking_changes=""
+        
+        # Check for removed endpoints or major version changes
+        if git diff main..HEAD --name-only | grep -E "(Controller|Program\.cs)" > /dev/null; then
+          echo "⚠️ API files modified - Manual review required"
+          breaking_changes="api-modified"
+        fi
+        
+        # Check for database migrations
+        if git diff main..HEAD --name-only | grep -E "Migrations/" > /dev/null; then
+          echo "🗄️ Database migrations detected"
+          breaking_changes="${breaking_changes},migrations"
+        fi
+        
+        echo "breaking_changes=$breaking_changes" >> $GITHUB_OUTPUT
+
+    - name: Add PR validation comment
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const botComment = comments.find(comment => 
+            comment.user.type === 'Bot' && 
+            comment.body.includes('🤖 Automated PR Validation')
+          );
+          
+          const breakingChanges = '${{ steps.breaking-changes.outputs.breaking_changes }}';
+          
+          let validationStatus = '✅ **All validations passed!**';
+          let additionalInfo = '';
+          
+          if (breakingChanges.includes('api-modified')) {
+            validationStatus = '⚠️ **Manual review required**';
+            additionalInfo += '\n- 🔍 API files modified - requires careful review';
+          }
+          
+          if (breakingChanges.includes('migrations')) {
+            additionalInfo += '\n- 🗄️ Database migrations detected - verify compatibility';
+          }
+          
+          const commentBody = `## 🤖 Automated PR Validation
+          
+          ${validationStatus}
+          
+          ### ✅ Checks Completed:
+          - ✅ .NET build successful
+          - ✅ .NET tests passed
+          - ✅ Frontend build successful  
+          - ✅ Frontend tests passed
+          
+          ${additionalInfo ? '### ⚠️ Additional Notes:' + additionalInfo : ''}
+          
+          ### 📊 PR Summary:
+          - **Target:** \`main\` ← \`develop\`
+          - **Commits:** ${context.payload.pull_request.commits} commit(s)
+          - **Files changed:** ${context.payload.pull_request.changed_files} file(s)
+          - **Additions:** +${context.payload.pull_request.additions} lines
+          - **Deletions:** -${context.payload.pull_request.deletions} lines
+          
+          ---
+          *Last updated: ${new Date().toISOString()}*`;
+          
+          if (botComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: commentBody
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: commentBody
+            });
+          }
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: Check for high severity vulnerabilities
+      run: |
+        if trivy fs --severity HIGH,CRITICAL --quiet .; then
+          echo "✅ No high severity vulnerabilities found"
+        else
+          echo "⚠️ High severity vulnerabilities detected - review required"
+          exit 1
+        fi
