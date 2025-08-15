@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OrderManagementSystem.Data;
 using OrderManagementSystem.Core;
+using Azure.Messaging.ServiceBus;
+using System.Text.Json;
 
 namespace OrderManagementSystem.Api.Controllers;
 
@@ -35,23 +37,40 @@ public class OrdersController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] OrderCreateModel model)
-    {
-        var order = new Order
-        {
-            Id = Guid.NewGuid(),
-            CustomerName = model.CustomerName,
-            Product = model.Product,
-            Price = model.Price,
-            Status = "Pendente",
-            CreationDate = DateTime.UtcNow
-        };
+public async Task<IActionResult> CreateOrder([FromBody] OrderCreateModel model)
+{
+    var serviceBusClient = HttpContext.RequestServices.GetRequiredService<ServiceBusClient>();
+    var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
 
-        _context.Orders.Add(order);
-        await _context.SaveChangesAsync();
-        
-        return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
+    var order = new Order
+    {
+        Id = Guid.NewGuid(),
+        CustomerName = model.CustomerName,
+        Product = model.Product,
+        Price = model.Price,
+        Status = "Pendente",
+        CreationDate = DateTime.UtcNow
+    };
+
+    _context.Orders.Add(order);
+    await _context.SaveChangesAsync();
+
+    try
+    {
+        string queueName = configuration["ServiceBus:QueueName"];
+        ServiceBusSender sender = serviceBusClient.CreateSender(queueName);
+        string messageBody = JsonSerializer.Serialize(order);
+        ServiceBusMessage message = new ServiceBusMessage(messageBody);
+        await sender.SendMessageAsync(message);
+        await sender.DisposeAsync();
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"ERRO NA API AO ENVIAR MENSAGEM: {ex.Message}");
+    }
+    
+    return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
+}
 
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateOrder(Guid id, [FromBody] OrderUpdateModel model)
